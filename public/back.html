@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Sender + Screen Viewer + OCR Text</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { margin: 0 auto; }
+        textarea, input { width: 100%; margin: 10px 0; padding: 8px; }
+        textarea { height: 100px; }
+        button { padding: 10px 20px; margin: 5px; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .status { padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .status.ready { background-color: #d4edda; color: #155724; }
+        .status.busy { background-color: #f8d7da; color: #721c24; }
+        .success { color: green; }
+        .error { color: red; }
+        .screen-container, .text-container { margin-top: 20px; text-align: center; }
+        #screenView { max-width: 100%; border: 2px solid #000; border-radius: 6px; }
+        #extractedText { width: 100%; height: 150px; padding: 10px; margin-top: 10px; border: 1px solid #000; border-radius: 5px; resize: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Message Sender</h1>
+        
+        <!-- Status -->
+        <div id="status" class="status ready">
+            ✅ Ready to accept messages
+        </div>
+        
+        <!-- Form -->
+        <form action="/mcq" id="messageForm" method="post">
+            <label for="userOne">User Value:</label>
+            <input type="text" id="userOne" placeholder="Enter user value (e.g. username)" />
+            <button type="button" id="submitUserOne">Send User Value</button>
+
+            <label for="userText">Message:</label>
+            <textarea id="userText" placeholder="Enter your message here..."></textarea>
+            <button type="button" id="submitUserText">Send Message</button>
+
+            <button type="button" onclick="checkServerStatus()">Check Status</button>
+        </form>
+        
+        <!-- Response message -->
+        <div id="response"></div>
+
+        <!-- Screen Viewer -->
+        <div class="screen-container">
+            <h2>📺 Live User Screen</h2>
+            <img id="screenView" src="" alt="Waiting for screen stream..." />
+        </div>
+
+        <!-- Extracted Text Viewer -->
+        <div class="text-container">
+            <h2>📝 Extracted Text from Screen</h2>
+            <textarea id="extractedText" readonly placeholder="Waiting for extracted text..."></textarea>
+            <br/>
+            <button onclick="copyExtractedText()">📋 Copy Text</button>
+        </div>
+    </div>
+
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const statusDiv = document.getElementById('status');
+        const responseDiv = document.getElementById('response');
+        const screenView = document.getElementById('screenView');
+        const extractedTextArea = document.getElementById('extractedText');
+
+        const socket = io();
+
+        socket.on('connect', () => console.log('✅ Connected to server via Socket.IO'));
+        socket.on('disconnect', () => console.log('❌ Disconnected from server'));
+
+        socket.on('screen-frame', (frame) => {
+            if (frame) screenView.src = `data:image/jpeg;base64,${frame}`;
+        });
+
+        socket.on('screen-text', (text) => extractedTextArea.value = text);
+
+        // Send User Value
+        document.getElementById('submitUserOne').addEventListener('click', async () => {
+            const userOne = document.getElementById('userOne').value.trim();
+            if (!userOne) {
+                showResponse('User value is required!', 'error');
+                return;
+            }
+            await sendData({ userOne });
+        });
+
+        // Send User Text
+        document.getElementById('submitUserText').addEventListener('click', async () => {
+            const userText = document.getElementById('userText').value.trim();
+            if (!userText) {
+                showResponse('Message text is required!', 'error');
+                return;
+            }
+            await sendData({ userText });
+        });
+
+        async function sendData(payload) {
+            try {
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: Object.keys(payload).map(k => `${k}=${encodeURIComponent(payload[k])}`).join('&')
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    showResponse('Sent successfully!', 'success');
+                    if (payload.userText) document.getElementById('userText').value = '';
+                    if (payload.userOne) document.getElementById('userOne').value = '';
+                    checkServerStatus();
+                } else {
+                    showResponse(data.error || 'Failed to send', 'error');
+                    checkServerStatus();
+                }
+            } catch (error) {
+                showResponse('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                if (data.canAcceptNewMessages) {
+                    statusDiv.textContent = '✅ Ready to accept messages';
+                    statusDiv.className = 'status ready';
+                } else {
+                    statusDiv.textContent = '⏳ Processing previous message... Please wait';
+                    statusDiv.className = 'status busy';
+                }
+            } catch {
+                statusDiv.textContent = '❌ Error checking server status';
+                statusDiv.className = 'status busy';
+            }
+        }
+
+        function showResponse(message, type) {
+            responseDiv.textContent = message;
+            responseDiv.className = type;
+            setTimeout(() => responseDiv.textContent = '', 3000);
+        }
+
+        async function copyExtractedText() {
+            const text = extractedTextArea.value.trim();
+            if (!text) return alert('No text to copy!');
+            try { await navigator.clipboard.writeText(text); alert('✅ Text copied!'); }
+            catch { extractedTextArea.select(); document.execCommand('copy'); alert('✅ Text copied!'); }
+        }
+
+        setInterval(checkServerStatus, 5000);
+    </script>
+</body>
+</html>

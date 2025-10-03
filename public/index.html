@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Control Dashboard | Screen Monitoring & Message System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        .dark-mode {
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: var(--transition);
+        }
+
+        .container {
+            /* max-width: 1400px; */
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Status Indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-ready {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-busy {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .status-pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-input:disabled, .form-textarea:disabled {
+            background-color: var(--background);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            background: var(--secondary);
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--background);
+            border-color: var(--primary);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Screen Viewer */
+        .screen-container {
+            position: relative;
+        }
+
+        #screenView {
+            width: 100%;
+            /* max-height: 500px; */
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--background);
+        }
+
+        .screen-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+        }
+
+        /* Text Display */
+        .text-display {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 150px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-primary);
+        }
+
+        /* Response Messages */
+        .response-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 14px;
+            transition: var(--transition);
+            opacity: 1;
+            max-height: 100px;
+            overflow: hidden;
+        }
+
+        .response-message.fade-out {
+            opacity: 0;
+            max-height: 0;
+            margin-top: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
+        .response-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .response-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+
+        /* Acknowledgment */
+        .ack-container {
+            background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+
+        .dark-mode .ack-container {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0c4a6e 100%);
+        }
+
+        /* Message Queue */
+        .queue-indicator {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 12px;
+        }
+
+        /* Utility Classes */
+        .text-muted {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Toggle Switch */
+        .theme-toggle {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+
+        .theme-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--secondary);
+            transition: var(--transition);
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: var(--transition);
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+
+        /* Loading Animation */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 16px;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--background);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1>
+                    <i class="fas fa-desktop"></i>
+                    Remote Control Dashboard
+                </h1>
+                <div class="text-muted">Real-time screen monitoring and message system</div>
+            </div>
+            <div class="header-right">
+                <div class="status-indicator" id="connectionStatus">
+                    <i class="fas fa-circle"></i>
+                    <span>Connecting...</span>
+                </div>
+                <label class="theme-toggle">
+                    <input type="checkbox" id="themeToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Grid -->
+        <div class="dashboard-grid">
+
+            <!-- Screen Viewer -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-video"></i>
+                        Live Screen Monitor
+                    </h2>
+                    <div class="screen-controls">
+                        <div class="text-muted" id="screenTimestamp">Last update: Never</div>
+                        <div class="btn-group">
+                            <button class="btn btn-outline" onclick="refreshScreen()">
+                                <i class="fas fa-redo"></i>
+                                Refresh
+                            </button>
+                            <button class="btn btn-outline" onclick="toggleAutoRefresh()">
+                                <i class="fas fa-play"></i>
+                                Auto-refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="screen-container">
+                    <img id="screenView" src="" alt="Live screen feed will appear here">
+                    <div class="status-indicator" id="screenStatus" style="margin-top: 16px;">
+                        <i class="fas fa-sync-alt spinner"></i>
+                        <span>Waiting for screen data...</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Control Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-gamepad"></i>
+                        Control Panel
+                    </h2>
+                    <div class="status-indicator" id="sendStatus">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Ready to send</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">User Input Value</label>
+                    <input type="text" class="form-input" id="userOne" placeholder="Enter numeric value (1-3)">
+                    <div class="btn-group" style="margin-top: 12px;">
+                        <button class="btn btn-primary" onclick="sendUserValue()">
+                            <i class="fas fa-paper-plane"></i>
+                            Send Value
+                        </button>
+                    </div>
+                    <div id="responseMcq"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Message to Send</label>
+                    <textarea class="form-textarea" id="userText" placeholder="Enter message to be typed automatically..."></textarea>
+                    
+                    <!-- Message Queue Indicator -->
+                    <div id="queueIndicator" class="queue-indicator" style="display: none;">
+                        <i class="fas fa-clock"></i>
+                        <span>Waiting for previous message to complete...</span>
+                    </div>
+                    
+                    <div class="btn-group" style="margin-top: 12px;">
+                        <button class="btn btn-primary" id="sendMessageBtn" onclick="sendMessage()">
+                            <i class="fas fa-keyboard"></i>
+                            Send Message
+                        </button>
+                        <button class="btn btn-outline" onclick="checkServerStatus()">
+                            <i class="fas fa-sync-alt"></i>
+                            Check Status
+                        </button>
+                    </div>
+                    <div id="responseMsg"></div>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-chart-bar"></i>
+                        System Status
+                    </h2>
+                </div>
+                
+                <div class="ack-container">
+                    <h3 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-check-circle"></i>
+                        Message Acknowledgment
+                    </h3>
+                    <div class="status-indicator" id="ackStatus">
+                        <i class="fas fa-clock"></i>
+                        <span>Waiting for acknowledgment...</span>
+                    </div>
+                    <div id="ackDetails" class="text-muted" style="margin-top: 12px;"></div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <div class="form-group">
+                        <label class="form-label">Connection Information</label>
+                        <div class="text-display" id="connectionInfo">
+                            Server: localhost:3000
+                            Last Ping: --
+                            Active Clients: --
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Extracted Text -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-file-alt"></i>
+                        Extracted Text (OCR)
+                    </h2>
+                    <div class="text-muted" id="textTimestamp">Last update: Never</div>
+                </div>
+                
+                <div class="text-display" id="extractedText">
+                    Text extracted from the screen will appear here...
+                </div>
+                
+                <div class="btn-group" style="margin-top: 16px;">
+                    <button class="btn btn-success" onclick="copyExtractedText()">
+                        <i class="fas fa-copy"></i>
+                        Copy Text
+                    </button>
+                    <button class="btn btn-outline" onclick="clearText()">
+                        <i class="fas fa-trash"></i>
+                        Clear Text
+                    </button>
+                    <button class="btn btn-outline" onclick="downloadText()">
+                        <i class="fas fa-download"></i>
+                        Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Initialize Socket.IO connection
+        const socket = io();
+        let autoRefresh = false;
+        let autoRefreshInterval;
+        let isMessagePending = false;
+        let messageTimeouts = {};
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('change', function() {
+            document.body.classList.toggle('dark-mode', this.checked);
+            localStorage.setItem('darkMode', this.checked);
+        });
+
+        // Load saved theme
+        if (localStorage.getItem('darkMode') === 'true') {
+            themeToggle.checked = true;
+            document.body.classList.add('dark-mode');
+        }
+
+        // Connection Status
+        function updateConnectionStatus(status, message) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.className = `status-indicator status-${status}`;
+            statusEl.innerHTML = `<i class="fas fa-circle"></i><span>${message}</span>`;
+        }
+
+        // Clear response message with fade out animation
+        function clearResponseMessage(elementId) {
+            const element = document.getElementById(elementId);
+            if (element && element.firstChild) {
+                // Add fade-out class
+                element.firstChild.classList.add('fade-out');
+                
+                // Remove element after animation
+                setTimeout(() => {
+                    element.innerHTML = '';
+                }, 300); // Match this with CSS transition time
+            }
+        }
+
+        // Show response message with auto-clear
+        function showResponseMessage(elementId, message, type = 'success', autoClearTime = 3000) {
+            const element = document.getElementById(elementId);
+            
+            // Clear any existing timeout for this element
+            if (messageTimeouts[elementId]) {
+                clearTimeout(messageTimeouts[elementId]);
+            }
+            
+            // Show new message
+            element.innerHTML = `<div class="response-message response-${type}">${message}</div>`;
+            
+            // Set timeout to clear message
+            messageTimeouts[elementId] = setTimeout(() => {
+                clearResponseMessage(elementId);
+            }, autoClearTime);
+        }
+
+        // Update send button state
+        function updateSendButtonState() {
+            const sendBtn = document.getElementById('sendMessageBtn');
+            const textarea = document.getElementById('userText');
+            const queueIndicator = document.getElementById('queueIndicator');
+            const sendStatus = document.getElementById('sendStatus');
+
+            if (isMessagePending) {
+                // Message is pending - disable sending
+                sendBtn.disabled = true;
+                textarea.disabled = true;
+                queueIndicator.style.display = 'block';
+                sendStatus.className = 'status-indicator status-busy';
+                sendStatus.innerHTML = '<i class="fas fa-clock"></i><span>Message in progress...</span>';
+            } else {
+                // Ready to send new message
+                sendBtn.disabled = false;
+                textarea.disabled = false;
+                queueIndicator.style.display = 'none';
+                sendStatus.className = 'status-indicator status-ready';
+                sendStatus.innerHTML = '<i class="fas fa-check-circle"></i><span>Ready to send</span>';
+            }
+        }
+
+        // Listen for acknowledgment from server
+        socket.on('acknowledgment', (data) => {
+            console.log('📨 Received acknowledgment:', data);
+            
+            const ackStatus = document.getElementById('ackStatus');
+            const ackDetails = document.getElementById('ackDetails');
+            
+            ackStatus.className = 'status-indicator status-ready';
+            ackStatus.innerHTML = '<i class="fas fa-check-circle"></i><span>Message Typing Completed!</span>';
+            
+            ackDetails.innerHTML = `
+                <div><strong>Timestamp:</strong> ${new Date().toLocaleTimeString()}</div>
+                <div>Client has successfully finished typing the message.</div>
+            `;
+
+            // Enable sending new messages
+            isMessagePending = false;
+            updateSendButtonState();
+            
+            // Auto-clear after 10 seconds
+            setTimeout(() => {
+                ackStatus.className = 'status-indicator status-pending';
+                ackStatus.innerHTML = '<i class="fas fa-clock"></i><span>Waiting for acknowledgment...</span>';
+                ackDetails.innerHTML = '';
+            }, 10000);
+        });
+
+        // Listen for screen data from server
+        socket.on('screen-data', (data) => {
+            console.log('📸 Received screen data');
+            updateScreenDisplay(data);
+        });
+
+        function updateScreenDisplay(data) {
+            const screenView = document.getElementById('screenView');
+            const extractedText = document.getElementById('extractedText');
+            const screenStatus = document.getElementById('screenStatus');
+            const screenTimestamp = document.getElementById('screenTimestamp');
+            const textTimestamp = document.getElementById('textTimestamp');
+            
+            if (data.screen_image) {
+                screenView.src = 'data:image/jpeg;base64,' + data.screen_image;
+                screenView.style.display = 'block';
+                screenStatus.className = 'status-indicator status-ready';
+                screenStatus.innerHTML = '<i class="fas fa-check-circle"></i><span>Screen updated successfully</span>';
+                
+                const timestamp = new Date(data.timestamp).toLocaleTimeString();
+                screenTimestamp.textContent = `Last update: ${timestamp}`;
+            }
+            
+            if (data.extracted_text) {
+                extractedText.textContent = data.extracted_text;
+                textTimestamp.textContent = `Last update: ${new Date(data.timestamp).toLocaleTimeString()}`;
+            }
+        }
+
+        function refreshScreen() {
+            const screenStatus = document.getElementById('screenStatus');
+            screenStatus.className = 'status-indicator status-pending';
+            screenStatus.innerHTML = '<i class="fas fa-sync-alt spinner"></i><span>Refreshing screen...</span>';
+            
+            fetch('/screen-data')
+                .then(response => response.json())
+                .then(data => {
+                    updateScreenDisplay(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching screen data:', error);
+                    screenStatus.className = 'status-indicator status-busy';
+                    screenStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>Error fetching screen data</span>';
+                });
+        }
+
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            const btn = event.target.closest('button');
+            
+            if (autoRefresh) {
+                btn.innerHTML = '<i class="fas fa-pause"></i>Pause Auto-refresh';
+                autoRefreshInterval = setInterval(refreshScreen, 3000);
+            } else {
+                btn.innerHTML = '<i class="fas fa-play"></i>Auto-refresh';
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        function sendUserValue() {
+            const mcqValue = document.getElementById('userOne').value;
+            
+            if (!mcqValue.trim()) {
+                showResponseMessage('responseMcq', 'Please enter a value to send', 'error', 3000);
+                return;
+            }
+            
+            fetch('/mcq', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mcq: mcqValue })
+            })
+            .then(response => response.text())
+            .then(data => {
+                showResponseMessage('responseMcq', data, 'success', 3000);
+                // Clear the input after successful send
+                document.getElementById('userOne').value = '';
+            })
+            .catch(err => {
+                showResponseMessage('responseMcq', `Error: ${err.message}`, 'error', 5000);
+            });
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('userText').value;
+            const ackStatus = document.getElementById('ackStatus');
+            
+            if (!message.trim()) {
+                showResponseMessage('responseMsg', 'Please enter a message to send', 'error', 3000);
+                return;
+            }
+
+            if (isMessagePending) {
+                showResponseMessage('responseMsg', 'Please wait for the previous message to complete', 'error', 3000);
+                return;
+            }
+
+            // Disable sending new messages
+            isMessagePending = true;
+            updateSendButtonState();
+
+            ackStatus.className = 'status-indicator status-pending';
+            ackStatus.innerHTML = '<i class="fas fa-clock"></i><span>Message sent, waiting for typing completion...</span>';
+            document.getElementById('ackDetails').innerHTML = '';
+            
+            fetch('/code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: message })
+            })
+            .then(response => response.text())
+            .then(data => {
+                showResponseMessage('responseMsg', data, 'success', 3000);
+                // Clear the textarea after successful send
+                document.getElementById('userText').value = '';
+            })
+            .catch(err => {
+                showResponseMessage('responseMsg', `Error: ${err.message}`, 'error', 5000);
+                // Re-enable sending if there was an error
+                isMessagePending = false;
+                updateSendButtonState();
+            });
+        }
+
+        function copyExtractedText() {
+            const text = document.getElementById('extractedText').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                // Show temporary success message
+                const btn = event.target.closest('button');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                }, 2000);
+            });
+        }
+
+        function clearText() {
+            document.getElementById('extractedText').textContent = '';
+        }
+
+        function downloadText() {
+            const text = document.getElementById('extractedText').textContent;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `extracted-text-${new Date().toISOString().slice(0,19)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function checkServerStatus() {
+            updateConnectionStatus('pending', 'Checking server...');
+            setTimeout(() => {
+                updateConnectionStatus('ready', 'Server is ready');
+            }, 1000);
+        }
+
+        // Socket.IO connection events
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            updateConnectionStatus('ready', 'Connected to server');
+            refreshScreen();
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            updateConnectionStatus('busy', 'Disconnected from server');
+        });
+
+        // Initialize send button state
+        updateSendButtonState();
+
+        // Request initial screen data when page loads
+        window.addEventListener('load', function() {
+            refreshScreen();
+        });
+    </script>
+</body>
+</html>
